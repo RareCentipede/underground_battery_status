@@ -12,6 +12,7 @@ class Battery:
     voltage: float
     assigned_to_at: Tuple[str, str] | None = None # Team name and timestamp, make an Enum of team names later
     status: batt_status = batt_status.STORED
+    time_assigned: float | None = None
 
     @property
     def data(self) -> List:

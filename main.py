@@ -1,6 +1,8 @@
 import datetime
 import numpy as np
 import pandas as pd
+import threading
+import time
 
 from typing import List, Dict
 from battery import Battery, batt_colors, batt_status
@@ -39,6 +41,8 @@ def main():
     bat_df = pd.DataFrame(columns=columns)
 
     danger_batts = []
+    thread = threading.Timer(interval=1, function=time_since_assigned_callback, args=[batteries])
+    thread.start()
 
     # Read user input loop
     cmd = ""
@@ -46,7 +50,7 @@ def main():
         assigned = False
         print("\nCurrent battery statuses:")
         for battery in batteries:
-            bat_df.loc[len(bat_df)] = battery.data
+            bat_df.loc[battery.id] = battery.data
 
         print(bat_df.to_string(index=False))
         print()
@@ -91,6 +95,7 @@ def main():
                 team_name = input("Enter team name: ")
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 selected_battery.assigned_to_at = (team_name, timestamp)
+                selected_battery.time_assigned = time.time()
                 assigned = True
 
             case _:
@@ -99,6 +104,15 @@ def main():
         selected_battery.update_status(assigned=assigned)
         if selected_battery.status == batt_status.DEFECT:
             danger_batts.append(selected_battery.id)
+
+def time_since_assigned_callback(batteries: List[Battery]):
+    print("Starting battery assignment time monitor...")
+    for battery in batteries:
+        time_assigned = battery.time_assigned
+        if time_assigned and battery.assigned_to_at:
+            elapsed_time = time.time() - time_assigned
+            if elapsed_time > 10:  # 10 minutes
+                print(f"Reminder: Battery {battery.id} assigned to {battery.assigned_to_at[0]} for over 10 minutes. Please check voltage.")
 
 if __name__ == "__main__":
     main()
