@@ -24,6 +24,17 @@ class Battery:
             self.assigned_to_at[1] if self.assigned_to_at else "",
         ]
 
+    def update_status(self, assigned: bool = False) -> None:
+        if self.voltage < 21.0:
+            self.status = batt_status.LOW if self.status != batt_status.CHARGING else self.status
+            self.assigned_to_at = None
+
+        if assigned:
+            self.status = batt_status.IN_USE
+
+        if self.voltage <= 20.0:
+            self.status = batt_status.DEFECT
+
     def __str__(self) -> str:
         bat_id = f"Battery {self.id} {self.color.name}"
         bat_voltage = f"Voltage: {self.voltage}V"

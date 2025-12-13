@@ -28,22 +28,48 @@ def main():
         4: batt_status.LOW,
     }
 
+    columns = [
+        "id",
+        "color",
+        "voltage",
+        "status",
+        "assigned_to",
+        "assigned_at",
+    ]
+    bat_df = pd.DataFrame(columns=columns)
+
+    danger_batts = []
+
     # Read user input loop
     cmd = ""
     while cmd.lower() != "q":
+        assigned = False
+        print("\nCurrent battery statuses:")
         for battery in batteries:
-            print(battery)
+            bat_df.loc[len(bat_df)] = battery.data
+
+        print(bat_df.to_string(index=False))
+        print()
 
         bat_id = input("Select battery by id: ")
 
         try:
             bat_id = int(bat_id)
+
+            if bat_id in danger_batts:
+                print(f"Warning: Battery {bat_id} is DEFECT!")
+                continue
+
+            if bat_id < 0 or bat_id >= len(batteries):
+                print("Invalid battery id (0-9).")
+                continue
+
         except:
             print("Invalid battery id (0-9) or not integer.")
             continue
 
         selected_battery = batteries[bat_id]
-        cmd = input(f"Choose action:\nv: update voltage\ns: update status\na: assign to team\nr: remove from team\nq: quit\n")
+        cmd = input(f"Choose action:\nv: update voltage\ns: update status\na: assign to team\nq: quit\n")
 
         match cmd.lower():
             case "v":
@@ -65,9 +91,14 @@ def main():
                 team_name = input("Enter team name: ")
                 timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 selected_battery.assigned_to_at = (team_name, timestamp)
+                assigned = True
 
             case _:
                 print("Invalid command.")
+
+        selected_battery.update_status(assigned=assigned)
+        if selected_battery.status == batt_status.DEFECT:
+            danger_batts.append(selected_battery.id)
 
 if __name__ == "__main__":
     main()
