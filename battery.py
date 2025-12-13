@@ -10,6 +10,5 @@ class Battery:
     id: int
     color: batt_colors
     voltage: float
-    box: int
-    assigned_to: str # Make an Enum of team names later
+    assigned_to_at: Tuple[str, str] # Team name and timestamp, make an Enum of team names later
     status: batt_status = batt_status.STORED
