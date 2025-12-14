@@ -41,7 +41,7 @@ def main():
     bat_df = pd.DataFrame(columns=columns)
 
     danger_batts = []
-    thread = threading.Timer(interval=1, function=time_since_assigned_callback, args=[batteries])
+    thread = threading.Thread(target=time_since_assigned_callback, args=[batteries])
     thread.start()
 
     # Read user input loop
@@ -106,13 +106,15 @@ def main():
             danger_batts.append(selected_battery.id)
 
 def time_since_assigned_callback(batteries: List[Battery]):
-    print("Starting battery assignment time monitor...")
-    for battery in batteries:
-        time_assigned = battery.time_assigned
-        if time_assigned and battery.assigned_to_at:
-            elapsed_time = time.time() - time_assigned
-            if elapsed_time > 10:  # 10 minutes
-                print(f"Reminder: Battery {battery.id} assigned to {battery.assigned_to_at[0]} for over 10 minutes. Please check voltage.")
+    while True:
+        time.sleep(5)
+
+        for battery in batteries:
+            time_assigned = battery.time_assigned
+            if time_assigned and battery.assigned_to_at:
+                elapsed_time = time.time() - time_assigned
+                if elapsed_time > 10:  # 10 minutes
+                    print(f"\nReminder: Battery {battery.id} assigned to {battery.assigned_to_at[0]} for over 10 minutes. Please check voltage.")
 
 if __name__ == "__main__":
     main()
