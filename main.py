@@ -11,6 +11,8 @@ from battery import Battery, batt_colors, batt_status
 NUM_GRAY_BATTS = 8
 NUM_BLUE_BATTS = 2
 SAVE_PATH = 'saves/'
+global EXIT
+EXIT = False
 
 BAT_STATS: Dict[int, batt_status] = {
     0: batt_status.IN_USE,
@@ -32,6 +34,8 @@ COLUMNS = [
 
 def main():
     batteries: List[Battery] = []
+    if not os.path.exists(SAVE_PATH):
+        os.makedirs(SAVE_PATH)
     saved_file = os.listdir(SAVE_PATH)
 
     if saved_file:
@@ -45,7 +49,7 @@ def main():
                 voltage=row['voltage'],
                 assigned_to_at=(row['assigned_to'], row['assigned_at']) if not pd.isna(row['assigned_to']) else ('', ''),
                 status=batt_status[row['status']],
-                time_assigned=row['time_assigned'] if not pd.isna(row['time_assigned']) else None,
+                time_assigned=row['time_assigned'],
             )
             batteries.append(battery)
     else:
@@ -74,25 +78,29 @@ def main():
 
         print(bat_df.to_string(index=False))
         print()
+        bat_df.to_csv(SAVE_PATH+'save.csv', index=False)
 
         bat_id = input("Select battery by id: ")
-
-        try:
+        if bat_id.isdigit():
             bat_id = int(bat_id)
 
             if bat_id in danger_batts:
                 print(f"Warning: Battery {bat_id} is DEFECT!")
-                continue
+                break
 
             if bat_id < 0 or bat_id >= len(batteries):
                 print("Invalid battery id (0-9).")
-                continue
+                break
 
-        except:
+            selected_battery = batteries[bat_id]
+        else:
+            if bat_id == "q":
+                print('Quitting...')
+                break
+
             print("Invalid battery id (0-9) or not integer.")
-            continue
+            break
 
-        selected_battery = batteries[bat_id]
         cmd = input(f"Choose action:\nv: update voltage\ns: update status\na: assign to team\nq: quit\n")
 
         match cmd.lower():
@@ -122,18 +130,20 @@ def main():
                 print("Invalid command.")
 
         selected_battery.update_status(assigned=assigned)
-        bat_df.to_csv(SAVE_PATH+'save.csv', index=False)
         if selected_battery.status == batt_status.DEFECT:
             danger_batts.append(selected_battery.id)
 
+    global EXIT
+    EXIT = True
+
 def time_since_assigned_callback(batteries: List[Battery]):
-    while True:
+    global EXIT
+    while not EXIT:
         time.sleep(5)
 
         for battery in batteries:
             time_assigned = battery.time_assigned
-            print(f"Battery {battery.id} assigned to a team at {time_assigned}")
-            if time_assigned and battery.assigned_to_at:
+            if time_assigned != -1.0 and battery.assigned_to_at:
                 elapsed_time = time.time() - time_assigned
                 if elapsed_time > 10:  # 10 minutes
                     print(f"\nReminder: Battery {battery.id} assigned to {battery.assigned_to_at[0]} for over 10 minutes. Please check voltage.")
