@@ -1,5 +1,6 @@
 import datetime
 import numpy as np
+import os
 import pandas as pd
 import threading
 import time
@@ -7,38 +8,55 @@ import time
 from typing import List, Dict
 from battery import Battery, batt_colors, batt_status
 
+NUM_GRAY_BATTS = 8
+NUM_BLUE_BATTS = 2
+SAVE_PATH = 'saves/'
+
+BAT_STATS: Dict[int, batt_status] = {
+    0: batt_status.IN_USE,
+    1: batt_status.CHARGING,
+    2: batt_status.STORED,
+    3: batt_status.DEFECT,
+    4: batt_status.LOW,
+}
+
+COLUMNS = [
+    "id",
+    "color",
+    "voltage",
+    "status",
+    "assigned_to",
+    "assigned_at",
+]
+
 def main():
-    num_gray_batteries = 8
-    num_blue_batteries = 2
-
     batteries: List[Battery] = []
+    saved_file = os.listdir(SAVE_PATH)
 
-    for i in range(num_blue_batteries+num_gray_batteries):
-        battery = Battery(
-            id=i,
-            color=batt_colors.GRAY if i < num_gray_batteries else batt_colors.BLUE,
-            voltage=24.6,
-        )
+    if saved_file:
+        print(f'Loading save')
+        bat_df = pd.read_csv(SAVE_PATH + saved_file[0])
 
-        batteries.append(battery)
+        for _, row in bat_df.iterrows():
+            battery = Battery(
+                id=row['id'],
+                color=batt_colors[row['color']],
+                voltage=row['voltage'],
+                assigned_to_at=(row['assigned_to'], row['assigned_at']) if not pd.isna(row['assigned_to']) else ('', ''),
+                status=batt_status[row['status']]
+            )
+            batteries.append(battery)
+    else:
+        for i in range(NUM_BLUE_BATTS+NUM_GRAY_BATTS):
+            battery = Battery(
+                id=i,
+                color=batt_colors.GRAY if i < NUM_GRAY_BATTS else batt_colors.BLUE,
+                voltage=24.6,
+            )
 
-    bat_stats: Dict[int, batt_status] = {
-        0: batt_status.IN_USE,
-        1: batt_status.CHARGING,
-        2: batt_status.STORED,
-        3: batt_status.DEFECT,
-        4: batt_status.LOW,
-    }
+            batteries.append(battery)
 
-    columns = [
-        "id",
-        "color",
-        "voltage",
-        "status",
-        "assigned_to",
-        "assigned_at",
-    ]
-    bat_df = pd.DataFrame(columns=columns)
+        bat_df = pd.DataFrame(columns=COLUMNS)
 
     danger_batts = []
     thread = threading.Thread(target=time_since_assigned_callback, args=[batteries])
@@ -87,7 +105,7 @@ def main():
             case "s":
                 status = input("Enter new status (0: IN_USE, 1: CHARGING, 2: STORED, 3: DEFECT, 4: LOW):\n")
                 try:
-                    selected_battery.status = batt_status[bat_stats[int(status)].name]
+                    selected_battery.status = batt_status[BAT_STATS[int(status)].name]
                 except:
                     print("Invalid status.")
 
@@ -102,6 +120,7 @@ def main():
                 print("Invalid command.")
 
         selected_battery.update_status(assigned=assigned)
+        bat_df.to_csv(SAVE_PATH+'save', index=False)
         if selected_battery.status == batt_status.DEFECT:
             danger_batts.append(selected_battery.id)
 
