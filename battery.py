@@ -23,6 +23,7 @@ class Battery:
             self.status.name,
             self.assigned_to_at[0] if self.assigned_to_at else "",
             self.assigned_to_at[1] if self.assigned_to_at else "",
+            self.time_assigned if self.time_assigned else "",
         ]
 
     def update_status(self, assigned: bool = False) -> None:

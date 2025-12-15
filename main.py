@@ -27,6 +27,7 @@ COLUMNS = [
     "status",
     "assigned_to",
     "assigned_at",
+    "time_assigned"
 ]
 
 def main():
@@ -43,7 +44,8 @@ def main():
                 color=batt_colors[row['color']],
                 voltage=row['voltage'],
                 assigned_to_at=(row['assigned_to'], row['assigned_at']) if not pd.isna(row['assigned_to']) else ('', ''),
-                status=batt_status[row['status']]
+                status=batt_status[row['status']],
+                time_assigned=row['time_assigned'] if not pd.isna(row['time_assigned']) else None,
             )
             batteries.append(battery)
     else:
@@ -120,7 +122,7 @@ def main():
                 print("Invalid command.")
 
         selected_battery.update_status(assigned=assigned)
-        bat_df.to_csv(SAVE_PATH+'save', index=False)
+        bat_df.to_csv(SAVE_PATH+'save.csv', index=False)
         if selected_battery.status == batt_status.DEFECT:
             danger_batts.append(selected_battery.id)
 
@@ -130,6 +132,7 @@ def time_since_assigned_callback(batteries: List[Battery]):
 
         for battery in batteries:
             time_assigned = battery.time_assigned
+            print(f"Battery {battery.id} assigned to a team at {time_assigned}")
             if time_assigned and battery.assigned_to_at:
                 elapsed_time = time.time() - time_assigned
                 if elapsed_time > 10:  # 10 minutes
